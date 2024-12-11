@@ -66,7 +66,7 @@ func ParseGrid(inputPath string) Grid {
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
-		line := []byte(scanner.Text())
+		line := scanner.Bytes()
 		if len(line) != 0 {
 			width = len(line)
 			data = append(data, line...)
