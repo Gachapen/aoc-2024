@@ -8,5 +8,8 @@ func main() {
 	// 	Run10Part2("10.txt")
 	// }
 
-	Run10Part2("10.txt")
+	// Run10Part2("10.txt")
+
+	Run11Part1("11.txt")
+	Run11Part2("11.txt")
 }
