@@ -1,6 +1,7 @@
-package main
+package grid
 
 import (
+	. "aoc-2024/vert"
 	"bufio"
 	"errors"
 	"fmt"
@@ -11,6 +12,14 @@ type Grid struct {
 	Data   []byte
 	Width  int
 	Height int
+}
+
+func MakeGrid(width int, height int) Grid {
+	return Grid{
+		Data:   make([]byte, width*height),
+		Width:  width,
+		Height: height,
+	}
 }
 
 func (grid *Grid) GetPositionFromIndex(index int) Vertex {
@@ -33,7 +42,7 @@ func (grid *Grid) IsOutOfBounds(position Vertex) bool {
 	return position.X < 0 || position.X >= grid.Width || position.Y < 0 || position.Y >= grid.Height
 }
 
-func SetCellValue(grid *Grid, position Vertex, value byte) {
+func (grid *Grid) SetCellValue(position Vertex, value byte) {
 	grid.Data[grid.GetIndexFromPosition(position)] = value
 }
 

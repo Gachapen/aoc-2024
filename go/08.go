@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	. "aoc-2024/grid"
+	. "aoc-2024/vert"
+	"fmt"
+)
 
 func Run08Part1(inputPath string) int {
 	grid := ParseGrid(inputPath)

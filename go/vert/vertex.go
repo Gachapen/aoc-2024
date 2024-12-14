@@ -1,4 +1,4 @@
-package main
+package vert
 
 type Vertex struct {
 	X int
@@ -19,6 +19,14 @@ func (a Vertex) Equals(b Vertex) bool {
 
 func (self Vertex) Negate() Vertex {
 	return Vertex{-self.X, -self.Y}
+}
+
+func (self Vertex) EuclideanLength() int {
+	return self.X + self.Y
+}
+
+func (self Vertex) Divide(by int) Vertex {
+	return Vertex{self.X / by, self.Y / by}
 }
 
 func ZeroOutVertexSlice(vertices []Vertex) {
