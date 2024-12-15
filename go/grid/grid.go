@@ -23,7 +23,7 @@ func MakeGrid(width int, height int) Grid {
 }
 
 func (grid *Grid) GetPositionFromIndex(index int) Vertex {
-	return Vertex{index % grid.Width, index / grid.Height}
+	return Vertex{index % grid.Width, index / grid.Width}
 }
 
 func (grid *Grid) GetIndexFromPosition(position Vertex) int {

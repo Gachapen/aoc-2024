@@ -8,18 +8,19 @@ import (
 	"os"
 )
 
-func SolvePart1(inputPath string) int {
-	const print = true
+const interactive = false
 
-	grid, moves := parse(inputPath)
+func SolvePart1(inputPath string) int {
+
+	grid, moves := parse(inputPath, false)
 	position := findStartPosition(&grid)
 
-	if print {
+	if interactive {
 		grid.Print()
 	}
 
 	for _, move := range moves {
-		if print {
+		if interactive {
 			grid.SetCellValue(position, '.')
 		}
 
@@ -35,7 +36,7 @@ func SolvePart1(inputPath string) int {
 			position = next
 		}
 
-		if print {
+		if interactive {
 			fmt.Println("Move: ", string(move))
 			grid.SetCellValue(position, '@')
 			grid.Print()
@@ -49,6 +50,53 @@ func SolvePart1(inputPath string) int {
 
 	for i, value := range grid.Data {
 		if value == 'O' {
+			pos := grid.GetPositionFromIndex(i)
+			sum += 100*pos.Y + pos.X
+		}
+	}
+
+	return sum
+}
+
+func SolvePart2(inputPath string) int {
+	grid, moves := parse(inputPath, true)
+	position := findStartPosition(&grid)
+
+	if interactive {
+		grid.Print()
+	}
+
+	for _, move := range moves {
+		if interactive {
+			grid.SetCellValue(position, '.')
+		}
+
+		direction := getDirectionFromMove(move)
+		next := position.Add(direction)
+
+		cellValue := grid.GetCellValue(next)
+		if cellValue == '[' || cellValue == ']' {
+			if moveWideBoxes(&grid, next, direction) {
+				position = next
+			}
+		} else if cellValue != '#' {
+			position = next
+		}
+
+		if interactive {
+			fmt.Println("Move: ", string(move))
+			grid.SetCellValue(position, '@')
+			grid.Print()
+
+			input := bufio.NewScanner(os.Stdin)
+			input.Scan()
+		}
+	}
+
+	sum := 0
+
+	for i, value := range grid.Data {
+		if value == '[' {
 			pos := grid.GetPositionFromIndex(i)
 			sum += 100*pos.Y + pos.X
 		}
@@ -76,6 +124,84 @@ func moveBoxes(grid *grid.Grid, startPosition vert.Vertex, direction vert.Vertex
 	return true
 }
 
+func moveWideBoxes(grid *grid.Grid, startPosition vert.Vertex, direction vert.Vertex) bool {
+	if direction.Y == 0 {
+		position := startPosition
+		currentValue := grid.GetCellValue(position)
+
+		for currentValue == '[' || currentValue == ']' {
+			position = position.Add(direction)
+			currentValue = grid.GetCellValue(position)
+		}
+
+		if currentValue == '#' {
+			return false
+		}
+
+		distance := position.X - startPosition.X
+		if distance < 0 {
+			distance = -distance
+		}
+
+		for i := 0; i < distance; i++ {
+			currentX := position.X + i*-direction.X
+			previousX := currentX - direction.X
+			previousValue := grid.GetCellValue(vert.Vertex{previousX, position.Y})
+			grid.SetCellValue(vert.Vertex{currentX, position.Y}, previousValue)
+		}
+
+		grid.SetCellValue(startPosition, '.')
+	} else {
+		return moveWideBoxesVertical(startPosition, direction.Y, grid)
+	}
+
+	return true
+}
+
+func moveWideBoxesVertical(startPosition vert.Vertex, direction int, grid *grid.Grid) bool {
+	queue := make([]vert.Vertex, 1)
+	queue[0] = startPosition
+	visited := make([]vert.Vertex, 0)
+
+	for len(queue) != 0 {
+		position := queue[0]
+		queue = queue[1:]
+
+		value := grid.GetCellValue(position)
+		if value == ']' {
+			position.X -= 1
+		}
+
+		visited = append(visited, position)
+
+		nextPositions := []vert.Vertex{{position.X, position.Y + direction}, {position.X + 1, position.Y + direction}}
+		nextValues := []byte{0, 0}
+
+		for i, nextPosition := range nextPositions {
+			nextValue := grid.GetCellValue(nextPosition)
+			nextValues[i] = nextValue
+
+			if nextValue == '#' {
+				return false
+			} else if nextValue == '[' || nextValue == ']' {
+				queue = append(queue, nextPosition)
+			}
+		}
+	}
+
+	for i := len(visited) - 1; i >= 0; i-- {
+		position := visited[i]
+
+		grid.SetCellValue(position.Add(vert.Vertex{0, direction}), '[')
+		grid.SetCellValue(position.Add(vert.Vertex{1, direction}), ']')
+
+		grid.SetCellValue(position, '.')
+		grid.SetCellValue(position.Add(vert.Vertex{1, 0}), '.')
+	}
+
+	return true
+}
+
 func getDirectionFromMove(move byte) vert.Vertex {
 	switch move {
 	case '<':
@@ -91,17 +217,14 @@ func getDirectionFromMove(move byte) vert.Vertex {
 	}
 }
 
-func SolvePart2(inputPath string) int {
-	return 0
-}
-
-func parse(inputPath string) (grid.Grid, []byte) {
+func parse(inputPath string, double bool) (grid.Grid, []byte) {
 	file, _ := os.Open(inputPath)
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 
-	grid := grid.ParseGridFromScanner(scanner)
+	originalGrid := grid.ParseGridFromScanner(scanner)
+
 	moves := make([]byte, 0)
 
 	for scanner.Scan() {
@@ -109,7 +232,31 @@ func parse(inputPath string) (grid.Grid, []byte) {
 		moves = append(moves, line...)
 	}
 
-	return grid, moves
+	if double {
+		doubledGrid := grid.MakeGrid(originalGrid.Width*2, originalGrid.Height)
+		for y := 0; y < originalGrid.Height; y++ {
+			for x := 0; x < originalGrid.Width; x++ {
+				originalPosition := vert.Vertex{x, y}
+				doubledPosition := vert.Vertex{x * 2, y}
+
+				value := originalGrid.GetCellValue(originalPosition)
+
+				if value == '#' || value == '.' {
+					doubledGrid.SetCellValue(doubledPosition, value)
+					doubledGrid.SetCellValue(doubledPosition.Add(vert.Vertex{1, 0}), value)
+				} else if value == '@' {
+					doubledGrid.SetCellValue(doubledPosition, value)
+					doubledGrid.SetCellValue(doubledPosition.Add(vert.Vertex{1, 0}), '.')
+				} else {
+					doubledGrid.SetCellValue(doubledPosition, '[')
+					doubledGrid.SetCellValue(doubledPosition.Add(vert.Vertex{1, 0}), ']')
+				}
+			}
+		}
+		return doubledGrid, moves
+	}
+
+	return originalGrid, moves
 }
 
 func findStartPosition(grid *grid.Grid) vert.Vertex {

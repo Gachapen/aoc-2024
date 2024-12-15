@@ -11,9 +11,9 @@ func TestSolvePart1(t *testing.T) {
 }
 
 func TestSolvePart1Example2(t *testing.T) {
-	assert.Equal(t, 2028, SolvePart1("example2.txt"))
+	assert.Equal(t, 9021, SolvePart1("example2.txt"))
 }
 
 func TestSolvePart2(t *testing.T) {
-	assert.Equal(t, 2858, SolvePart2("example.txt"))
+	assert.Equal(t, 9021, SolvePart2("example.txt"))
 }
