@@ -1,9 +1,9 @@
 package main
 
 import (
-	"aoc-2024/d14"
-	"aoc-2024/vert"
+	"aoc-2024/d15"
 	"fmt"
+	"os"
 )
 
 func main() {
@@ -20,5 +20,8 @@ func main() {
 	// Run11Part2("11.txt")
 
 	// fmt.Println(d13.SolveDay13Part1("d13/input.txt"))
-	fmt.Println(d14.SolveDayPart2("d14/input.txt", vert.Vertex{101, 103}))
+	// fmt.Println(d14.SolveDayPart2("d14/input.txt", vert.Vertex{101, 103}))
+	// fmt.Println(d09.SolvePart1("d09/input.txt"))
+	// fmt.Println(d09.SolvePart2("d09/input.txt"))
+	fmt.Println(d15.SolvePart1(os.Args[1]))
 }

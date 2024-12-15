@@ -55,7 +55,7 @@ func (grid *Grid) Print() {
 	}
 }
 
-func FindPositionOf(grid *Grid, value byte) (Vertex, error) {
+func (grid *Grid) FindPositionOf(value byte) (Vertex, error) {
 	for i, cell := range grid.Data {
 		if cell == value {
 			return grid.GetPositionFromIndex(i), nil
@@ -69,17 +69,22 @@ func ParseGrid(inputPath string) Grid {
 	file, _ := os.Open(inputPath)
 	defer file.Close()
 
+	scanner := bufio.NewScanner(file)
+	return ParseGridFromScanner(scanner)
+}
+
+func ParseGridFromScanner(scanner *bufio.Scanner) Grid {
 	data := make([]byte, 0)
 	width := 0
 
-	scanner := bufio.NewScanner(file)
-
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		if len(line) != 0 {
-			width = len(line)
-			data = append(data, line...)
+		if len(line) == 0 {
+			break
 		}
+
+		width = len(line)
+		data = append(data, line...)
 	}
 
 	height := len(data) / width
