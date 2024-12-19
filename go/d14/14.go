@@ -1,7 +1,7 @@
 package d14
 
 import (
-	"aoc-2024/grid"
+	"aoc-2024/grd"
 	. "aoc-2024/vert"
 	"bufio"
 	"os"
@@ -42,7 +42,7 @@ func SolveDayPart2(inputPath string, gridSize Vertex) int {
 
 	// divisionPoint := gridSize.Divide(2)
 
-	grid := grid.MakeGrid(gridSize.X, gridSize.Y)
+	grid := grd.MakeGrid(gridSize.X, gridSize.Y)
 
 	for i := 0; true; i++ {
 		for j := 0; j < len(grid.Data); j++ {

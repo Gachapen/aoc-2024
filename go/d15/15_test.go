@@ -17,3 +17,12 @@ func TestSolvePart1Example2(t *testing.T) {
 func TestSolvePart2(t *testing.T) {
 	assert.Equal(t, 9021, SolvePart2("example.txt"))
 }
+
+func BenchmarkSolvePart2(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		grid, moves := parse("input.txt", true)
+		b.StartTimer()
+		solveParsedPart2(&grid, moves)
+	}
+}

@@ -1,7 +1,7 @@
 package d15
 
 import (
-	"aoc-2024/grid"
+	"aoc-2024/grd"
 	"aoc-2024/vert"
 	"bufio"
 	"fmt"
@@ -60,7 +60,11 @@ func SolvePart1(inputPath string) int {
 
 func SolvePart2(inputPath string) int {
 	grid, moves := parse(inputPath, true)
-	position := findStartPosition(&grid)
+	return solveParsedPart2(&grid, moves)
+}
+
+func solveParsedPart2(grid *grd.Grid, moves []byte) int {
+	position := findStartPosition(grid)
 
 	if interactive {
 		grid.Print()
@@ -76,7 +80,7 @@ func SolvePart2(inputPath string) int {
 
 		cellValue := grid.GetCellValue(next)
 		if cellValue == '[' || cellValue == ']' {
-			if moveWideBoxes(&grid, next, direction) {
+			if moveWideBoxes(grid, next, direction) {
 				position = next
 			}
 		} else if cellValue != '#' {
@@ -105,7 +109,7 @@ func SolvePart2(inputPath string) int {
 	return sum
 }
 
-func moveBoxes(grid *grid.Grid, startPosition vert.Vertex, direction vert.Vertex) bool {
+func moveBoxes(grid *grd.Grid, startPosition vert.Vertex, direction vert.Vertex) bool {
 	position := startPosition
 	currentValue := grid.GetCellValue(position)
 
@@ -124,7 +128,7 @@ func moveBoxes(grid *grid.Grid, startPosition vert.Vertex, direction vert.Vertex
 	return true
 }
 
-func moveWideBoxes(grid *grid.Grid, startPosition vert.Vertex, direction vert.Vertex) bool {
+func moveWideBoxes(grid *grd.Grid, startPosition vert.Vertex, direction vert.Vertex) bool {
 	if direction.Y == 0 {
 		position := startPosition
 		currentValue := grid.GetCellValue(position)
@@ -158,7 +162,7 @@ func moveWideBoxes(grid *grid.Grid, startPosition vert.Vertex, direction vert.Ve
 	return true
 }
 
-func moveWideBoxesVertical(startPosition vert.Vertex, direction int, grid *grid.Grid) bool {
+func moveWideBoxesVertical(startPosition vert.Vertex, direction int, grid *grd.Grid) bool {
 	queue := make([]vert.Vertex, 1)
 	queue[0] = startPosition
 	visited := make([]vert.Vertex, 0)
@@ -217,13 +221,13 @@ func getDirectionFromMove(move byte) vert.Vertex {
 	}
 }
 
-func parse(inputPath string, double bool) (grid.Grid, []byte) {
+func parse(inputPath string, double bool) (grd.Grid, []byte) {
 	file, _ := os.Open(inputPath)
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 
-	originalGrid := grid.ParseGridFromScanner(scanner)
+	originalGrid := grd.ParseGridFromScanner(scanner)
 
 	moves := make([]byte, 0)
 
@@ -233,7 +237,7 @@ func parse(inputPath string, double bool) (grid.Grid, []byte) {
 	}
 
 	if double {
-		doubledGrid := grid.MakeGrid(originalGrid.Width*2, originalGrid.Height)
+		doubledGrid := grd.MakeGrid(originalGrid.Width*2, originalGrid.Height)
 		for y := 0; y < originalGrid.Height; y++ {
 			for x := 0; x < originalGrid.Width; x++ {
 				originalPosition := vert.Vertex{x, y}
@@ -259,7 +263,7 @@ func parse(inputPath string, double bool) (grid.Grid, []byte) {
 	return originalGrid, moves
 }
 
-func findStartPosition(grid *grid.Grid) vert.Vertex {
+func findStartPosition(grid *grd.Grid) vert.Vertex {
 	position, _ := grid.FindPositionOf('@')
 	return position
 }

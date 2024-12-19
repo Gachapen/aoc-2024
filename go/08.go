@@ -1,7 +1,7 @@
 package main
 
 import (
-	. "aoc-2024/grid"
+	. "aoc-2024/grd"
 	. "aoc-2024/vert"
 	"fmt"
 )

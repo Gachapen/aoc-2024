@@ -1,7 +1,7 @@
 package main
 
 import (
-	"aoc-2024/d17"
+	"aoc-2024/d18"
 	"fmt"
 )
 
@@ -25,5 +25,8 @@ func main() {
 	// fmt.Println(d15.SolvePart2("d15/example3.txt"))
 	// fmt.Println(d15.SolvePart2(os.Args[1]))
 	// fmt.Println(d17.SolvePart1(os.Args[1]))
-	fmt.Println(d17.SolvePart2("d17/input.txt"))
+	// fmt.Println(d17.SolvePart2("d17/input.txt"))
+	// fmt.Println(d18.SolvePart1("d18/example.txt", 7, 12))
+	// fmt.Println(d18.SolvePart1("d18/input.txt", 71, 1024))
+	fmt.Println(d18.SolvePart2("d18/input.txt", 71, 1024))
 }

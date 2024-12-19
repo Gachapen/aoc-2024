@@ -1,4 +1,4 @@
-package grid
+package grd
 
 import (
 	. "aoc-2024/vert"
