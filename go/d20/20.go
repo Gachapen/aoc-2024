@@ -36,7 +36,7 @@ func Solve(inputPath string, minSaved int, maxCheatMoves int) int {
 	for cost != 0 && saved >= minSaved {
 		// fmt.Println(saved)
 		numCheats += 1
-		fmt.Println(numCheats)
+		// fmt.Println(numCheats)
 		// saves = append(saves, saved)
 
 		cost = findCostWithCheats(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves)
@@ -104,8 +104,7 @@ func findCostWithCheats(
 			next = findNextWithoutCheats(grid, current, previous, gridScores)
 			moves += 1
 		} else {
-			alternatives := findAlternatives(grid, current, previous, cheatsUsed, gridScores, moves, minSave, maxCheatMoves)
-			bestAlternative := getBestAlternative(alternatives)
+			bestAlternative := findBestMove(grid, current, previous, cheatsUsed, gridScores, moves, minSave, maxCheatMoves)
 			next = bestAlternative.next
 			moves += bestAlternative.distance
 
@@ -138,7 +137,7 @@ func findNextWithoutCheats(grid *grd.Grid, current vert.Vertex, previous vert.Ve
 	panic("no next")
 }
 
-func findAlternatives(
+func findBestMove(
 	grid *grd.Grid,
 	current vert.Vertex,
 	previous vert.Vertex,
@@ -147,12 +146,8 @@ func findAlternatives(
 	currentMoves int,
 	minSave int,
 	maxCheatDistance int,
-) []Alternative {
-	alternatives := make([]Alternative, 0, 4)
-
-	if current.X == 8 && current.Y == 7 {
-		fmt.Println("here")
-	}
+) Move {
+	bestAlternative := Move{}
 
 	for offsetY := -maxCheatDistance; offsetY <= maxCheatDistance; offsetY++ {
 		absOffsetY := offsetY
@@ -177,26 +172,28 @@ func findAlternatives(
 			distance := math.AbsInt(offsetX) + math.AbsInt(offsetY)
 
 			if distance == 1 {
-				alternatives = append(alternatives, Alternative{next, distance, 0, Cheat{}})
+				if bestAlternative.saved == 0 {
+					bestAlternative = Move{next, distance, 0, Cheat{}}
+				}
 			} else {
 				cheat := Cheat{current, next}
 				if !cheatsUsed[cheat] {
 					moves := currentMoves + distance
 					saved := gridScores[grid.GetIndexFromPosition(next)] - moves
-					if saved >= minSave {
-						alternatives = append(alternatives, Alternative{next, distance, saved, cheat})
+					if saved >= minSave && saved > bestAlternative.saved {
+						bestAlternative = Move{next, distance, saved, cheat}
 					}
 				}
 			}
 		}
 	}
 
-	return alternatives
+	return bestAlternative
 }
 
-func getBestAlternative(alternatives []Alternative) Alternative {
+func getBestAlternative(alternatives []Move) Move {
 	bestSave := 0
-	bestAlternative := Alternative{}
+	bestAlternative := Move{}
 
 	for _, alternative := range alternatives {
 		if alternative.saved >= bestSave {
@@ -208,7 +205,7 @@ func getBestAlternative(alternatives []Alternative) Alternative {
 	return bestAlternative
 }
 
-type Alternative struct {
+type Move struct {
 	next     vert.Vertex
 	distance int
 	saved    int
