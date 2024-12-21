@@ -21,7 +21,7 @@ func Solve(inputPath string, minSaved int, maxCheatMoves int) int {
 
 	gridScores := make([]int, len(grid.Data))
 
-	costWithoutCheats := findCostWithoutCheats(&grid, start, end, gridScores)
+	findCostWithoutCheats(&grid, start, end, gridScores)
 	// fmt.Println(costWithoutCheats)
 
 	cheatsUsed := make(map[Cheat]bool)
@@ -29,18 +29,14 @@ func Solve(inputPath string, minSaved int, maxCheatMoves int) int {
 	numCheats := 0
 	// saves := make([]int, 0)
 
-	cost := findCostWithCheats(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves)
-	// fmt.Println(cost)
-	saved := costWithoutCheats - cost
+	saved, moves, start, previous := findCheat(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves, 0, start)
 
-	for cost != 0 && saved >= minSaved {
+	for saved >= minSaved {
 		// fmt.Println(saved)
 		numCheats += 1
 		// fmt.Println(numCheats)
-		// saves = append(saves, saved)
 
-		cost = findCostWithCheats(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves)
-		saved = costWithoutCheats - cost
+		saved, moves, start, previous = findCheat(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves, moves, previous)
 	}
 
 	// slices.Sort(saves)
@@ -81,7 +77,7 @@ func findCostWithoutCheats(grid *grd.Grid, start, goal vert.Vertex, gridScores [
 	return moves
 }
 
-func findCostWithCheats(
+func findCheat(
 	grid *grd.Grid,
 	start,
 	goal vert.Vertex,
@@ -89,38 +85,25 @@ func findCostWithCheats(
 	gridScores []int,
 	minSave int,
 	maxCheatMoves int,
-) int {
-	previous := start
+	moves int,
+	previous vert.Vertex,
+) (int, int, vert.Vertex, vert.Vertex) {
 	current := start
 
-	moves := 0
-
-	cheated := false
-
 	for current != goal {
-		var next vert.Vertex
+		bestMove := findBestMove(grid, current, previous, cheatsUsed, gridScores, moves, minSave, maxCheatMoves)
 
-		if cheated {
-			next = findNextWithoutCheats(grid, current, previous, gridScores)
-			moves += 1
-		} else {
-			bestAlternative := findBestMove(grid, current, previous, cheatsUsed, gridScores, moves, minSave, maxCheatMoves)
-			next = bestAlternative.next
-			moves += bestAlternative.distance
-
-			if bestAlternative.saved > 0 {
-				cheated = true
-				cheatsUsed[bestAlternative.cheat] = true
-				// fmt.Println(bestAlternative.cheat)
-				// printPosition(grid, bestAlternative.cheat)
-			}
+		if bestMove.saved > 0 {
+			cheatsUsed[bestMove.cheat] = true
+			return bestMove.saved, moves, current, previous
 		}
 
+		moves += bestMove.distance
 		previous = current
-		current = next
+		current = bestMove.next
 	}
 
-	return moves
+	return 0, moves, current, previous
 }
 
 func findNextWithoutCheats(grid *grd.Grid, current vert.Vertex, previous vert.Vertex, gridScores []int) vert.Vertex {
@@ -147,7 +130,7 @@ func findBestMove(
 	minSave int,
 	maxCheatDistance int,
 ) Move {
-	bestAlternative := Move{}
+	bestMove := Move{}
 
 	for offsetY := -maxCheatDistance; offsetY <= maxCheatDistance; offsetY++ {
 		absOffsetY := offsetY
@@ -172,37 +155,23 @@ func findBestMove(
 			distance := math.AbsInt(offsetX) + math.AbsInt(offsetY)
 
 			if distance == 1 {
-				if bestAlternative.saved == 0 {
-					bestAlternative = Move{next, distance, 0, Cheat{}}
+				if bestMove.saved == 0 {
+					bestMove = Move{next, distance, 0, Cheat{}}
 				}
 			} else {
 				cheat := Cheat{current, next}
 				if !cheatsUsed[cheat] {
 					moves := currentMoves + distance
 					saved := gridScores[grid.GetIndexFromPosition(next)] - moves
-					if saved >= minSave && saved > bestAlternative.saved {
-						bestAlternative = Move{next, distance, saved, cheat}
+					if saved >= minSave && saved > bestMove.saved {
+						bestMove = Move{next, distance, saved, cheat}
 					}
 				}
 			}
 		}
 	}
 
-	return bestAlternative
-}
-
-func getBestAlternative(alternatives []Move) Move {
-	bestSave := 0
-	bestAlternative := Move{}
-
-	for _, alternative := range alternatives {
-		if alternative.saved >= bestSave {
-			bestSave = alternative.saved
-			bestAlternative = alternative
-		}
-	}
-
-	return bestAlternative
+	return bestMove
 }
 
 type Move struct {
