@@ -7,18 +7,18 @@ import (
 )
 
 func TestPart1Example(t *testing.T) {
-	result := SolvePart1("example.txt")
+	result := Solve("example.txt", 1, 2)
 	assert.Equal(t, 44, result)
 }
 
-func TestPart1ExampleWitoutCheats(t *testing.T) {
+func TestPart1ExampleWithoutCheats(t *testing.T) {
 	grid := parse("example.txt")
 	start, _ := grid.FindPositionOf('S')
 	end, _ := grid.FindPositionOf('E')
 
-	cheatsUsed := make(map[Cheat]bool)
+	gridScores := make([]int, len(grid.Data))
 
-	cost, _ := findCostOfCheapestPathToGoal(&grid, start, end, 0, cheatsUsed)
+	cost := findCostWithoutCheats(&grid, start, end, gridScores)
 	assert.Equal(t, 84, cost)
 }
 

@@ -29,6 +29,9 @@ func main() {
 	// fmt.Println(d18.SolvePart1("d18/example.txt", 7, 12))
 	// fmt.Println(d18.SolvePart1("d18/input.txt", 71, 1024))
 	// fmt.Println(d18.SolvePart2("d18/input.txt", 71, 1024))
-	// fmt.Println(d20.SolvePart1("d20/example.txt"))
-	fmt.Println(d20.SolvePart1("d20/input.txt"))
+
+	// fmt.Println(d20.Solve("d20/example.txt", 1, 2))
+	// fmt.Println(d20.Solve("d20/input.txt", 100, 2))
+	// fmt.Println(d20.Solve("d20/example.txt", 50, 20))
+	fmt.Println(d20.Solve("d20/input.txt", 100, 20))
 }

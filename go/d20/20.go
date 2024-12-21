@@ -2,7 +2,7 @@ package d20
 
 import (
 	"aoc-2024/grd"
-	"aoc-2024/pq"
+	"aoc-2024/math"
 	"aoc-2024/vert"
 	"bufio"
 	"fmt"
@@ -14,32 +14,37 @@ type Cheat struct {
 	end   vert.Vertex
 }
 
-func SolvePart1(inputPath string) int {
+func Solve(inputPath string, minSaved int, maxCheatMoves int) int {
 	grid := parse(inputPath)
 	start, _ := grid.FindPositionOf('S')
 	end, _ := grid.FindPositionOf('E')
 
+	gridScores := make([]int, len(grid.Data))
+
+	costWithoutCheats := findCostWithoutCheats(&grid, start, end, gridScores)
+	// fmt.Println(costWithoutCheats)
+
 	cheatsUsed := make(map[Cheat]bool)
 
-	costWithoutCheats, _ := findCostOfCheapestPathToGoal(&grid, start, end, 0, cheatsUsed)
-	// costWithoutCheats := 84
-
-	// const minSaved = 100
-	const minSaved = 1
 	numCheats := 0
+	// saves := make([]int, 0)
 
-	cost, cheat := findCostOfCheapestPathToGoal(&grid, start, end, 2, cheatsUsed)
+	cost := findCostWithCheats(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves)
+	// fmt.Println(cost)
 	saved := costWithoutCheats - cost
-	cheatsUsed[cheat] = true
 
 	for cost != 0 && saved >= minSaved {
-		fmt.Println(saved)
+		// fmt.Println(saved)
 		numCheats += 1
-		cost, cheat = findCostOfCheapestPathToGoal(&grid, start, end, 2, cheatsUsed)
+		fmt.Println(numCheats)
+		// saves = append(saves, saved)
 
+		cost = findCostWithCheats(&grid, start, end, cheatsUsed, gridScores, minSaved, maxCheatMoves)
 		saved = costWithoutCheats - cost
-		cheatsUsed[cheat] = true
 	}
+
+	// slices.Sort(saves)
+	// fmt.Println(saves)
 
 	return numCheats
 }
@@ -48,80 +53,180 @@ func SolvePart2(inputPath string, gridSize int, numInitialCorruptions int) strin
 	return ""
 }
 
-// func findBestCheats(grid *grd.Grid, start, end vert.Vertex, maxCheats int) []int {
-// 	cheatsUsed := make(map[Cheat]bool)
+func findCostWithoutCheats(grid *grd.Grid, start, goal vert.Vertex, gridScores []int) int {
+	previous := start
+	current := start
 
-// 	costWithoutCheats, _ := findCostOfCheapestPathToGoal(grid, start, end, 0, cheatsUsed)
+	moves := 0
 
-// 	bestCheatScores := make([]int, 0)
-// 	sumSaved := 0
-
-// 	for sumSaved < 100 {
-// 		cost, cheat := findCostOfCheapestPathToGoal(grid, start, end, maxCheats, cheatsUsed)
-// 		saved := costWithoutCheats - cost
-// 		cheatsUsed[cheat] = true
-
-// 		if saved > 0 {
-// 			bestCheatScores = append(bestCheatScores, saved)
-// 			sumSaved += saved
-// 		}
-// 	}
-
-// 	return len(bestCheatScores)
-// }
-
-func findCostOfCheapestPathToGoal(grid *grd.Grid, start, goal vert.Vertex, maxCheats int, cheatsUsed map[Cheat]bool) (int, Cheat) {
-	queue := pq.MakePriorityQueue[Visit, int]()
-	queue.PushItem(Visit{start, 0, 0, nil}, 0)
-
-	for len(queue) != 0 {
-		item := queue.PopItem()
-
-		current := item.Value
-		previous := current.previous
-
-		// printPath(grid, &current)
-
-		if current.position == goal {
-			// printPath(grid, &current)
-			return current.cost, findUsedCheat(&current)
-		}
+	for current != goal {
+		var next vert.Vertex
 
 		for _, offset := range []vert.Vertex{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} {
-			next := current.position.Add(offset)
+			next = current.Add(offset)
+			if next != previous && grid.GetCellValue(next) != '#' {
+				break
+			}
+		}
 
-			if !grid.IsOutOfBounds(next) && (previous == nil || next != previous.position) {
-				cheatTime := current.cheatTime
-				canMove := false
+		previous = current
+		current = next
 
-				if grid.GetCellValue(next) != '#' {
-					canMove = true
-					if cheatTime > 0 && cheatTime < maxCheats {
-						cheatTime += 1
+		moves += 1
+
+		gridIndex := grid.GetIndexFromPosition(next)
+		gridScores[gridIndex] = moves
+	}
+
+	return moves
+}
+
+func findCostWithCheats(
+	grid *grd.Grid,
+	start,
+	goal vert.Vertex,
+	cheatsUsed map[Cheat]bool,
+	gridScores []int,
+	minSave int,
+	maxCheatMoves int,
+) int {
+	previous := start
+	current := start
+
+	moves := 0
+
+	cheated := false
+
+	for current != goal {
+		var next vert.Vertex
+
+		if cheated {
+			next = findNextWithoutCheats(grid, current, previous, gridScores)
+			moves += 1
+		} else {
+			alternatives := findAlternatives(grid, current, previous, cheatsUsed, gridScores, moves, minSave, maxCheatMoves)
+			bestAlternative := getBestAlternative(alternatives)
+			next = bestAlternative.next
+			moves += bestAlternative.distance
+
+			if bestAlternative.saved > 0 {
+				cheated = true
+				cheatsUsed[bestAlternative.cheat] = true
+				// fmt.Println(bestAlternative.cheat)
+				// printPosition(grid, bestAlternative.cheat)
+			}
+		}
+
+		previous = current
+		current = next
+	}
+
+	return moves
+}
+
+func findNextWithoutCheats(grid *grd.Grid, current vert.Vertex, previous vert.Vertex, gridScores []int) vert.Vertex {
+	for _, offset := range []vert.Vertex{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} {
+		next := current.Add(offset)
+		if next != previous && grid.GetCellValue(next) != '#' {
+			scoreChange := gridScores[grid.GetIndexFromPosition(next)] - gridScores[grid.GetIndexFromPosition(current)]
+			if scoreChange > 0 {
+				return next
+			}
+		}
+	}
+
+	panic("no next")
+}
+
+func findAlternatives(
+	grid *grd.Grid,
+	current vert.Vertex,
+	previous vert.Vertex,
+	cheatsUsed map[Cheat]bool,
+	gridScores []int,
+	currentMoves int,
+	minSave int,
+	maxCheatDistance int,
+) []Alternative {
+	alternatives := make([]Alternative, 0, 4)
+
+	if current.X == 8 && current.Y == 7 {
+		fmt.Println("here")
+	}
+
+	for offsetY := -maxCheatDistance; offsetY <= maxCheatDistance; offsetY++ {
+		absOffsetY := offsetY
+		if absOffsetY < 0 {
+			absOffsetY = -absOffsetY
+		}
+
+		lookWidth := maxCheatDistance - absOffsetY
+
+		for offsetX := -lookWidth; offsetX <= lookWidth; offsetX++ {
+			if offsetX == 0 && offsetY == 0 {
+				continue
+			}
+
+			offset := vert.Vertex{offsetX, offsetY}
+			next := current.Add(offset)
+
+			if next == previous || grid.IsOutOfBounds(next) || grid.GetCellValue(next) == '#' {
+				continue
+			}
+
+			distance := math.AbsInt(offsetX) + math.AbsInt(offsetY)
+
+			if distance == 1 {
+				alternatives = append(alternatives, Alternative{next, distance, 0, Cheat{}})
+			} else {
+				cheat := Cheat{current, next}
+				if !cheatsUsed[cheat] {
+					moves := currentMoves + distance
+					saved := gridScores[grid.GetIndexFromPosition(next)] - moves
+					if saved >= minSave {
+						alternatives = append(alternatives, Alternative{next, distance, saved, cheat})
 					}
-				} else if cheatTime < maxCheats {
-					if cheatTime < maxCheats-1 {
-						canMove = true
-					}
-					cheatTime += 1
-				}
-
-				if cheatTime != current.cheatTime && cheatTime == maxCheats && cheatsUsed[Cheat{start: current.position, end: next}] {
-					canMove = false
-				}
-
-				if canMove {
-					cost := current.cost + 1
-					heuristic := current.position.ManhattanDistanceTo(goal)
-					priority := cost + heuristic
-
-					queue.PushItem(Visit{next, cost, cheatTime, &current}, priority)
 				}
 			}
 		}
 	}
 
-	return 0, Cheat{}
+	return alternatives
+}
+
+func getBestAlternative(alternatives []Alternative) Alternative {
+	bestSave := 0
+	bestAlternative := Alternative{}
+
+	for _, alternative := range alternatives {
+		if alternative.saved >= bestSave {
+			bestSave = alternative.saved
+			bestAlternative = alternative
+		}
+	}
+
+	return bestAlternative
+}
+
+type Alternative struct {
+	next     vert.Vertex
+	distance int
+	saved    int
+	cheat    Cheat
+}
+
+func printPosition(original *grd.Grid, position vert.Vertex) {
+	grid := grd.MakeGrid(original.Width, original.Height)
+	copy(grid.Data, original.Data)
+
+	head := position
+	grid.SetCellValue(head, 'O')
+
+	grid.Print()
+	fmt.Println()
+
+	input := bufio.NewScanner(os.Stdin)
+	input.Scan()
 }
 
 func printPath(original *grd.Grid, current *Visit) {
