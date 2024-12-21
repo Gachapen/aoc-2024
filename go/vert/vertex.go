@@ -21,8 +21,18 @@ func (self Vertex) Negate() Vertex {
 	return Vertex{-self.X, -self.Y}
 }
 
-func (self Vertex) EuclideanLength() int {
-	return self.X + self.Y
+func (self Vertex) ManhattanDistanceTo(other Vertex) int {
+	distX := other.X - self.X
+	if distX < 0 {
+		distX = -distX
+	}
+
+	distY := other.Y - self.Y
+	if distY < 0 {
+		distY = -distY
+	}
+
+	return distX + distY
 }
 
 func (self Vertex) Divide(by int) Vertex {

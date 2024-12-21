@@ -2,13 +2,12 @@ package d20
 
 import (
 	"aoc-2024/grd"
+	"aoc-2024/pq"
 	"aoc-2024/vert"
 	"bufio"
 	"fmt"
 	"os"
 )
-
-const interactive = true
 
 type Cheat struct {
 	start vert.Vertex
@@ -22,21 +21,24 @@ func SolvePart1(inputPath string) int {
 
 	cheatsUsed := make(map[Cheat]bool)
 
-	// costWithoutCheats, _ := findCostOfCheapestPathToGoal(&grid, start, end, 0, cheatsUsed)
-	costWithoutCheats := 84
+	costWithoutCheats, _ := findCostOfCheapestPathToGoal(&grid, start, end, 0, cheatsUsed)
+	// costWithoutCheats := 84
 
+	// const minSaved = 100
+	const minSaved = 1
 	numCheats := 0
-	sumSaved := 0
 
-	for sumSaved < 100 {
-		cost, cheat := findCostOfCheapestPathToGoal(&grid, start, end, 2, cheatsUsed)
-		saved := costWithoutCheats - cost
+	cost, cheat := findCostOfCheapestPathToGoal(&grid, start, end, 2, cheatsUsed)
+	saved := costWithoutCheats - cost
+	cheatsUsed[cheat] = true
+
+	for cost != 0 && saved >= minSaved {
+		fmt.Println(saved)
+		numCheats += 1
+		cost, cheat = findCostOfCheapestPathToGoal(&grid, start, end, 2, cheatsUsed)
+
+		saved = costWithoutCheats - cost
 		cheatsUsed[cheat] = true
-
-		if saved > 0 {
-			numCheats += 1
-			sumSaved += saved
-		}
 	}
 
 	return numCheats
@@ -69,46 +71,51 @@ func SolvePart2(inputPath string, gridSize int, numInitialCorruptions int) strin
 // }
 
 func findCostOfCheapestPathToGoal(grid *grd.Grid, start, goal vert.Vertex, maxCheats int, cheatsUsed map[Cheat]bool) (int, Cheat) {
-	queue := make([]Node, 1)
-	queue[0] = Node{start, 0, 0, nil}
-
-	visited := make(map[vert.Vertex]bool)
-	visited[start] = true
+	queue := pq.MakePriorityQueue[Visit, int]()
+	queue.PushItem(Visit{start, 0, 0, nil}, 0)
 
 	for len(queue) != 0 {
-		current := queue[0]
-		queue = queue[1:]
+		item := queue.PopItem()
 
-		printPath(grid, &current)
+		current := item.Value
+		previous := current.previous
+
+		// printPath(grid, &current)
 
 		if current.position == goal {
+			// printPath(grid, &current)
 			return current.cost, findUsedCheat(&current)
 		}
 
 		for _, offset := range []vert.Vertex{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} {
 			next := current.position.Add(offset)
 
-			if !grid.IsOutOfBounds(next) && next != current.position {
-				cheats := current.cheats
+			if !grid.IsOutOfBounds(next) && (previous == nil || next != previous.position) {
+				cheatTime := current.cheatTime
 				canMove := false
 
 				if grid.GetCellValue(next) != '#' {
 					canMove = true
-					if cheats > 0 && cheats < maxCheats {
-						cheats += 1
+					if cheatTime > 0 && cheatTime < maxCheats {
+						cheatTime += 1
 					}
-				} else if current.cheats < maxCheats {
-					canMove = true
-					cheats += 1
+				} else if cheatTime < maxCheats {
+					if cheatTime < maxCheats-1 {
+						canMove = true
+					}
+					cheatTime += 1
 				}
 
-				if cheats != current.cheats && cheats == maxCheats && cheatsUsed[Cheat{start: current.position, end: next}] {
+				if cheatTime != current.cheatTime && cheatTime == maxCheats && cheatsUsed[Cheat{start: current.position, end: next}] {
 					canMove = false
 				}
 
 				if canMove {
-					queue = append(queue, Node{next, current.cost + 1, cheats, &current})
-					visited[next] = true
+					cost := current.cost + 1
+					heuristic := current.position.ManhattanDistanceTo(goal)
+					priority := cost + heuristic
+
+					queue.PushItem(Visit{next, cost, cheatTime, &current}, priority)
 				}
 			}
 		}
@@ -117,7 +124,7 @@ func findCostOfCheapestPathToGoal(grid *grd.Grid, start, goal vert.Vertex, maxCh
 	return 0, Cheat{}
 }
 
-func printPath(original *grd.Grid, current *Node) {
+func printPath(original *grd.Grid, current *Visit) {
 	grid := grd.MakeGrid(original.Width, original.Height)
 	copy(grid.Data, original.Data)
 
@@ -138,12 +145,12 @@ func printPath(original *grd.Grid, current *Node) {
 	input.Scan()
 }
 
-func findUsedCheat(endNode *Node) Cheat {
+func findUsedCheat(endNode *Visit) Cheat {
 	current := endNode
 	for current.previous != nil {
 		previous := current.previous
 
-		if previous.cheats != current.cheats {
+		if previous.cheatTime != current.cheatTime {
 			return Cheat{start: previous.position, end: current.position}
 		}
 
@@ -153,11 +160,11 @@ func findUsedCheat(endNode *Node) Cheat {
 	return Cheat{}
 }
 
-type Node struct {
-	position vert.Vertex
-	cost     int
-	cheats   int
-	previous *Node
+type Visit struct {
+	position  vert.Vertex
+	cost      int
+	cheatTime int
+	previous  *Visit
 }
 
 func parse(inputPath string) grd.Grid {
